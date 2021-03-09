@@ -105,34 +105,25 @@ void setup() {
 
 void reconnect() {
   // Recconnect to the MQTT server
-
-  Serial.println("Attempting Reconnect MQTT connection...");
-  // Attempt to connect
-  if (client.connect(mqtt_server, mqtt_user, mqtt_password)) 
-  {
-    Serial.println("MQTT connected");
-    Retry = 0;
-    client.subscribe("master/night");
-  } 
-  else 
-  {
-    // MQTT connection does not work
-    ++Retry;
-    Serial.println();
-    Serial.print("MQTT failed, rc=");
-    Serial.println(client.state());
-    if (Retry > 15)
-    {
-      Serial.println("REBOOTING");
-      Retry = 0;
-      Serial.println(" Reboot in 2 seconds");
-      // Wait 2 seconds before retrying
-      delay(2000);
-      ESP.restart();
+  while (!client.connected() && MQTTTry < 5 ) {
+      Serial.print("Attempting MQTT connection...");
+      ++MQTTTry;
+      // Create a random client ID
+      String clientId = "ESP8266Client-";
+      clientId += String(random(0xffff), HEX);
+      // Attempt to connect
+      if (client.connect(clientId.c_str(), mqtt_user, mqtt_password)) {
+        Serial.println("connected");
+        // Once connected, publish an announcement...
+        // ... and resubscribe
+        client.subscribe("master/night");
+      } else {
+        Serial.print("failed, rc=");
+        Serial.print(client.state());
+        Serial.println(" try again in 5 seconds");
+        // Wait 5 seconds before retrying
+        delay(5000);
     }
-  }
-
-  
 }
 
 void callback(char* topic, byte* message, unsigned int length) {
